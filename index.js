@@ -1,21 +1,41 @@
+require("dotenv").config();
+
 const express = require("express");
+const line = require("@line/bot-sdk");
 
 const app = express();
-app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Server is running!");
-});
+// LINE署名検証をするため、webhook では rawBody が必要
+app.post(
+  "/webhook",
+  line.middleware({ channelSecret: process.env.LINE_CHANNEL_SECRET }),
+  (req, res) => {
+    res.sendStatus(200);
 
-app.post("/webhook", (req, res) => {
-  console.log("Webhook received:");
-  console.log(JSON.stringify(req.body, null, 2));
-  res.sendStatus(200);
-});
+    const client = new line.Client({
+      channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+    });
+
+    Promise.all(
+      req.body.events.map((event) => {
+        if (event.type !== "message") return null;
+        if (event.message.type !== "text") return null;
+
+        return client.replyMessage(event.replyToken, {
+          type: "text",
+          text: `echo: ${event.message.text}`,
+        });
+      })
+    )
+      .then(() => {})
+      .catch((err) => console.error("reply error:", err));
+  }
+);
+
+// ルート（Render確認用）
+app.get("/", (req, res) => res.send("Server is running!"));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
 
 
