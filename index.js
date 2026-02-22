@@ -4,7 +4,27 @@ const express = require("express");
 const line = require("@line/bot-sdk");
 
 const app = express();
+// ===== Dify 呼び出し関数 =====
+const fetch = require("node-fetch");
 
+async function callDifyChat(userId, messageText) {
+  const response = await fetch("https://api.dify.ai/v1/chat-messages", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.DIFY_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      inputs: {},
+      query: messageText,
+      response_mode: "blocking",
+      user: userId,
+    }),
+  });
+
+  const data = await response.json();
+  return data.answer;
+}
 // LINE署名検証をするため、webhook では rawBody が必要
 app.post(
   "/webhook",
