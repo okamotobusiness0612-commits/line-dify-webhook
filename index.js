@@ -5,7 +5,7 @@ const line = require("@line/bot-sdk");
 
 const app = express();
 // ===== Dify 呼び出し関数 =====
-const fetch = require("node-fetch");
+
 
 async function callDifyChat(userId, messageText) {
   const response = await fetch("https://api.dify.ai/v1/chat-messages", {
