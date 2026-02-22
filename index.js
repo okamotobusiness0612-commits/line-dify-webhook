@@ -41,10 +41,21 @@ app.post(
         if (event.type !== "message") return null;
         if (event.message.type !== "text") return null;
 
-        return client.replyMessage(event.replyToken, {
-          type: "text",
-          text: `echo: ${event.message.text}`,
-        });
+        return callDifyChat(event.source.userId, event.message.text)
+  .then((answer) => {
+    return client.replyMessage(event.replyToken, {
+      type: "text",
+      text: answer || "（回答が空でした）",
+    });
+  })
+  .catch((err) => {
+    console.error("Dify error:", err);
+    // Difyが落ちてもLINEには一応返す（任意）
+    return client.replyMessage(event.replyToken, {
+      type: "text",
+      text: "ただいま混み合っています。少し時間をおいてもう一度お願いします🙏",
+    });
+  });
       })
     )
       .then(() => {})
