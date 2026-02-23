@@ -97,64 +97,47 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
   res.sendStatus(200);
 
   try {
-    const events = req.body.events || [];
+const events = req.body.events || [];
 
-    await Promise.all(
-      events.map(async (event) => {
-        // メッセージ以外は無視
-        if (event.type !== "message") return;
-        if (event.message.type !== "text") return;
+await Promise.all(
+  events.map(async (event) => {
+    // メッセージ以外は無視
+    if (event.type !== "message") return;
+    if (event.message.type !== "text") return;
 
-        
-  console.log("STAFF REGISTER userId:", lineUserId);
+    // ① 先に取り出す（超重要）
+    const lineUserId = event.source?.userId;
+    const text = (event.message.text || "").trim();
 
-  // 一旦は「登録できたよ」を返すだけ
-  return client.replyMessage(event.replyToken, {
-    type: "text",
-    text: "通知登録OK！この端末に仮予約が入ったら通知します📩",
-  });
-const lineUserId = event.source?.userId;
-const text = (event.message.text || "").trim();
+    if (!lineUserId) return;
 
-if (!lineUserId) return;
+    // ② 通知登録
+    if (text === "通知登録") {
+      console.log("STAFF REGISTER userId:", lineUserId);
 
-// ===== 通知登録 =====
-if (text === "通知登録") {
-  console.log("STAFF REGISTER userId:", lineUserId);
-  return client.replyMessage(event.replyToken, {
-    type: "text",
-    text: "通知登録OK！この端末に仮予約が入ったら通知します📩",
-  });
-}
+      return client.replyMessage(event.replyToken, {
+        type: "text",
+        text: "通知登録OK！この端末に仮予約が入ったら通知します📩",
+      });
+    }
 
-// ===== 通知テスト =====
-if (text === "通知テスト") {
-  await notifyStaff("【通知テスト】スタッフ通知OKです📩");
-  return client.replyMessage(event.replyToken, {
-    type: "text",
-    text: "スタッフへ通知しました！",
-  });
-}
+    // ③ 通知テスト
+    if (text === "通知テスト") {
+      await notifyStaff("【通知テスト】スタッフ通知OKです📩");
 
-       
+      return client.replyMessage(event.replyToken, {
+        type: "text",
+        text: "スタッフへ通知しました！",
+      });
+    }
 
-        // リセットコマンド
-        if (text === "リセット" || text === "reset") {
-          resetConversation(lineUserId);
-          return client.replyMessage(event.replyToken, {
-            type: "text",
-            text: "会話をリセットしました！もう一度ご用件をどうぞ😊",
-          });
-        }
-
-        const answer = await callDifyChat(lineUserId, text);
-
-        return client.replyMessage(event.replyToken, {
-          type: "text",
-          text: answer,
-        });
-      })
-    );
+    // ④ ここから先は通常処理（リセット、Difyなど）を続ける
+    // 例：
+    // if (text === "リセット" || text === "reset") { ... }
+    // const answer = await callDifyChat(lineUserId, text);
+    // return client.replyMessage(event.replyToken, { type: "text", text: answer });
+  })
+);
   } catch (err) {
     console.error("Webhook error:", err);
     // ここでLINEへは返信できない（replyTokenの有効期限/非同期など）
