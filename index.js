@@ -80,6 +80,18 @@ function resetConversation(lineUserId) {
 // ===============================
 // Webhook
 // ===============================
+async function notifyStaff(text) {
+  const to = [
+    process.env.STAFF_USER_ID_1,
+    process.env.STAFF_USER_ID_2,
+  ].filter(Boolean);
+
+  console.log("notifyStaff to:", to);
+
+  if (to.length === 0) return;
+
+  await client.multicast(to, { type: "text", text });
+}
 app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
   // LINEには即200返す（タイムアウト対策）
   res.sendStatus(200);
@@ -96,7 +108,25 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
         const lineUserId = event.source?.userId;
         const text = (event.message.text || "").trim();
         // ===== 通知登録コマンド（スタッフ用）=====
+i// ===== 通知登録コマンド =====
 if (text === "通知登録") {
+  console.log("STAFF REGISTER userId:", lineUserId);
+
+  return client.replyMessage(event.replyToken, {
+    type: "text",
+    text: "通知登録OK！この端末に仮予約が入ったら通知します📩",
+  });
+}
+
+// ===== 通知テスト =====
+if (text === "通知テスト") {
+  await notifyStaff("【通知テスト】スタッフ通知OKです📩");
+
+  return client.replyMessage(event.replyToken, {
+    type: "text",
+    text: "スタッフへ通知しました！",
+  });
+}
   console.log("STAFF REGISTER userId:", lineUserId);
 
   // 一旦は「登録できたよ」を返すだけ
