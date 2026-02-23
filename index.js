@@ -3,70 +3,132 @@ require("dotenv").config();
 const express = require("express");
 const line = require("@line/bot-sdk");
 
+// Node 18+ なら fetch はグローバルで使えます。
+// Node 18未満の場合は node-fetch を入れて以下を有効化してください。
+// const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
+
 const app = express();
-// ===== Dify 呼び出し関数 =====
 
+// ===============================
+// LINE 設定
+// ===============================
+const lineConfig = {
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+  channelSecret: process.env.LINE_CHANNEL_SECRET,
+};
 
-async function callDifyChat(userId, messageText) {
-  const response = await fetch("https://api.dify.ai/v1/chat-messages", {
+const client = new line.Client({ channelAccessToken: lineConfig.channelAccessToken });
+
+// ===============================
+// Dify 会話ID 保存（暫定：メモリ）
+// key: LINE userId, value: Dify conversation_id
+// ===============================
+const conversationStore = new Map();
+
+// ===============================
+// Dify 呼び出し
+// ===============================
+async function callDifyChat(lineUserId, messageText) {
+  const conversationId = conversationStore.get(lineUserId);
+
+  const payload = {
+    inputs: {},
+    query: messageText,
+    response_mode: "blocking",
+    user: lineUserId,
+    ...(conversationId ? { conversation_id: conversationId } : {}),
+  };
+
+  const res = await fetch("https://api.dify.ai/v1/chat-messages", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${process.env.DIFY_API_KEY}`,
+      Authorization: `Bearer ${process.env.DIFY_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      inputs: {},
-      query: messageText,
-      response_mode: "blocking",
-      user: userId,
-    }),
+    body: JSON.stringify(payload),
   });
 
-  const data = await response.json();
-  return data.answer;
-}
-// LINE署名検証をするため、webhook では rawBody が必要
-app.post(
-  "/webhook",
-  line.middleware({ channelSecret: process.env.LINE_CHANNEL_SECRET }),
-  (req, res) => {
-    res.sendStatus(200);
+  const data = await res.json();
 
-    const client = new line.Client({
-      channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
-    });
+  // デバッグしたい時だけONにしてOK
+  console.log("Dify req conversation_id:", conversationId);
+  console.log("Dify res conversation_id:", data.conversation_id);
+  console.log("Dify status:", res.status, "message:", data.message);
 
-    Promise.all(
-      req.body.events.map((event) => {
-        if (event.type !== "message") return null;
-        if (event.message.type !== "text") return null;
-
-        return callDifyChat(event.source.userId, event.message.text)
-  .then((answer) => {
-    return client.replyMessage(event.replyToken, {
-      type: "text",
-      text: answer || "（回答が空でした）",
-    });
-  })
-  .catch((err) => {
-    console.error("Dify error:", err);
-    // Difyが落ちてもLINEには一応返す（任意）
-    return client.replyMessage(event.replyToken, {
-      type: "text",
-      text: "ただいま混み合っています。少し時間をおいてもう一度お願いします🙏",
-    });
-  });
-      })
-    )
-      .then(() => {})
-      .catch((err) => console.error("reply error:", err));
+  // conversation_id を保存（会話継続の肝）
+  if (data.conversation_id) {
+    conversationStore.set(lineUserId, data.conversation_id);
   }
-);
 
-// ルート（Render確認用）
-app.get("/", (req, res) => res.send("Server is running!"));
+  // 失敗時の最低限のハンドリング
+  if (!res.ok) {
+    // Difyが返す message があればそれを出す
+    return `（Difyエラー）${data.message ?? "不明なエラーが発生しました"}`;
+  }
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+  // 返答本文
+  return data.answer ?? "（回答を取得できませんでした）";
+}
 
+// ===============================
+// 会話リセット（ユーザーが「リセット」と送ったら）
+// ===============================
+function resetConversation(lineUserId) {
+  conversationStore.delete(lineUserId);
+}
 
+// ===============================
+// Webhook
+// ===============================
+app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
+  // LINEには即200返す（タイムアウト対策）
+  res.sendStatus(200);
+
+  try {
+    const events = req.body.events || [];
+
+    await Promise.all(
+      events.map(async (event) => {
+        // メッセージ以外は無視
+        if (event.type !== "message") return;
+        if (event.message.type !== "text") return;
+
+        const lineUserId = event.source?.userId;
+        const text = (event.message.text || "").trim();
+
+        if (!lineUserId) return;
+
+        // リセットコマンド
+        if (text === "リセット" || text === "reset") {
+          resetConversation(lineUserId);
+          return client.replyMessage(event.replyToken, {
+            type: "text",
+            text: "会話をリセットしました！もう一度ご用件をどうぞ😊",
+          });
+        }
+
+        const answer = await callDifyChat(lineUserId, text);
+
+        return client.replyMessage(event.replyToken, {
+          type: "text",
+          text: answer,
+        });
+      })
+    );
+  } catch (err) {
+    console.error("Webhook error:", err);
+    // ここでLINEへは返信できない（replyTokenの有効期限/非同期など）
+  }
+});
+
+// ===============================
+// Health check（Render用）
+// ===============================
+app.get("/", (req, res) => {
+  res.status(200).send("OK");
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server running on ${port}`);
+});
