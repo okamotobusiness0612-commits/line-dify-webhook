@@ -95,6 +95,16 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
 
         const lineUserId = event.source?.userId;
         const text = (event.message.text || "").trim();
+        // ===== 通知登録コマンド（スタッフ用）=====
+if (text === "通知登録") {
+  console.log("STAFF REGISTER userId:", lineUserId);
+
+  // 一旦は「登録できたよ」を返すだけ
+  return client.replyMessage(event.replyToken, {
+    type: "text",
+    text: "通知登録OK！この端末に仮予約が入ったら通知します📩",
+  });
+}
 
         if (!lineUserId) return;
 
