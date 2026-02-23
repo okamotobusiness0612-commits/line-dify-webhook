@@ -105,13 +105,22 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
         if (event.type !== "message") return;
         if (event.message.type !== "text") return;
 
-        const lineUserId = event.source?.userId;
-        const text = (event.message.text || "").trim();
-        // ===== 通知登録コマンド（スタッフ用）=====
-i// ===== 通知登録コマンド =====
-if (text === "通知登録") {
+        
   console.log("STAFF REGISTER userId:", lineUserId);
 
+  // 一旦は「登録できたよ」を返すだけ
+  return client.replyMessage(event.replyToken, {
+    type: "text",
+    text: "通知登録OK！この端末に仮予約が入ったら通知します📩",
+  });
+const lineUserId = event.source?.userId;
+const text = (event.message.text || "").trim();
+
+if (!lineUserId) return;
+
+// ===== 通知登録 =====
+if (text === "通知登録") {
+  console.log("STAFF REGISTER userId:", lineUserId);
   return client.replyMessage(event.replyToken, {
     type: "text",
     text: "通知登録OK！この端末に仮予約が入ったら通知します📩",
@@ -121,22 +130,13 @@ if (text === "通知登録") {
 // ===== 通知テスト =====
 if (text === "通知テスト") {
   await notifyStaff("【通知テスト】スタッフ通知OKです📩");
-
   return client.replyMessage(event.replyToken, {
     type: "text",
     text: "スタッフへ通知しました！",
   });
 }
-  console.log("STAFF REGISTER userId:", lineUserId);
 
-  // 一旦は「登録できたよ」を返すだけ
-  return client.replyMessage(event.replyToken, {
-    type: "text",
-    text: "通知登録OK！この端末に仮予約が入ったら通知します📩",
-  });
-}
-
-        if (!lineUserId) return;
+       
 
         // リセットコマンド
         if (text === "リセット" || text === "reset") {
