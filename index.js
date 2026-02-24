@@ -131,11 +131,26 @@ await Promise.all(
       });
     }
 
-    // ④ ここから先は通常処理（リセット、Difyなど）を続ける
-    // 例：
-    // if (text === "リセット" || text === "reset") { ... }
-    // const answer = await callDifyChat(lineUserId, text);
-    // return client.replyMessage(event.replyToken, { type: "text", text: answer });
+    // ④ リセット
+if (text === "リセット" || text === "reset") {
+  resetConversation(lineUserId);
+  return client.replyMessage(event.replyToken, {
+    type: "text",
+    text: "会話をリセットしました！もう一度ご用件をどうぞ😊",
+  });
+}
+
+// ⑤ 通常はDifyへ
+console.log("🔥 Dify到達:", text);
+
+const answer = await callDifyChat(lineUserId, text);
+
+console.log("✅ Dify answer:", answer);
+
+return client.replyMessage(event.replyToken, {
+  type: "text",
+  text: answer || "すみません、うまく回答できませんでした。もう一度お願いします🙇‍♂️",
+});
   })
 );
   } catch (err) {
