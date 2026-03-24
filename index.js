@@ -93,8 +93,8 @@ async function notifyStaff(text) {
 // スタッフ用フォーマット
 // ===============================
 function formatReservationForStaff(text) {
-  const name = (text.match(/お名前[:：]\s*(.+)/) || [])[1] || "未取得";
-  const date = (text.match(/日時[:：]\s*(.+)/) || [])[1] || "未取得";
+  const name = (text.match(/(?:お)?名前[:：]\s*(.+)/) || [])[1] || "未取得";
+  const date = (text.match(/(?:ご)?日時[:：]\s*(.+)/) || [])[1] || "未取得";
   const menu = (text.match(/メニュー[:：]\s*(.+)/) || [])[1] || "未取得";
   const contact = (text.match(/(?:ご)?連絡先[:：]\s*(.+)/) || [])[1] || "未取得";
 
