@@ -93,13 +93,27 @@ async function notifyStaff(text) {
 // スタッフ用フォーマット
 // ===============================
 function formatReservationForStaff(text) {
-  const name = (text.match(/(?:お)?名前[:：]\s*(.+)/) || [])[1] || "未取得";
-  const date = (text.match(/(?:ご)?日時[:：]\s*(.+)/) || [])[1] || "未取得";
-  const menu = (text.match(/メニュー[:：]\s*(.+)/) || [])[1] || "未取得";
-  const contact = (text.match(/(?:ご)?連絡先[:：]\s*(.+)/) || [])[1] || "未取得";
+  const name =
+    (text.match(/(?:お)?名前[:：]\s*(.+)/) || [])[1] ||
+    (text.match(/ありがとうございます、?\s*([^\s、。]+)様/) || [])[1] ||
+    "未取得";
+
+  const date =
+    (text.match(/(?:ご)?日時[:：]\s*(.+)/) || [])[1] ||
+    "未取得";
+
+  const menu =
+    (text.match(/メニュー[:：]\s*(.+)/) || [])[1] ||
+    "未取得";
+
+  const contact =
+    (text.match(/(?:ご)?連絡先[:：]\s*(.+)/) || [])[1] ||
+    "未取得";
+
+  const displayName = name === "未取得" ? "未取得" : `${name}様`;
 
   return `【新規仮予約】
-お名前：${name}
+お名前：${displayName}
 日時：${date}
 メニュー：${menu}
 連絡先：${contact}
