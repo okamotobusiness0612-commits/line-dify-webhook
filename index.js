@@ -96,7 +96,7 @@ function formatReservationForStaff(text) {
   const name = (text.match(/お名前[:：]\s*(.+)/) || [])[1] || "未取得";
   const date = (text.match(/日時[:：]\s*(.+)/) || [])[1] || "未取得";
   const menu = (text.match(/メニュー[:：]\s*(.+)/) || [])[1] || "未取得";
-  const contact = (text.match(/ご連絡先[:：]\s*(.+)/) || [])[1] || "未取得";
+  const contact = (text.match(/(?:ご)?連絡先[:：]\s*(.+)/) || [])[1] || "未取得";
 
   return `【新規仮予約】
 お名前：${name}
