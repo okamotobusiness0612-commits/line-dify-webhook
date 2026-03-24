@@ -122,7 +122,7 @@ function formatReservationForStaff(text) {
   }
 
   return `【新規仮予約】
-お名前：${name}様
+お名前：${name}
 日時：${date}
 メニュー：${menu}
 連絡先：${contact}
