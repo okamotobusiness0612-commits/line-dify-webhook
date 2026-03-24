@@ -80,6 +80,7 @@ function resetConversation(lineUserId) {
 // ===============================
 // Webhook
 // ===============================
+
 async function notifyStaff(text) {
   const to = [
     process.env.STAFF_USER_ID_1,
@@ -90,8 +91,27 @@ async function notifyStaff(text) {
 
   if (to.length === 0) return;
 
-  await client.multicast(to, { type: "text", text });
+  await client.multicast(to, {
+    type: "text",
+    text,
+  });
 }
+
+function formatReservationForStaff(text) {
+  const name = (text.match(/お名前[:：]\s*(.+)/) || [])[1] || "未取得";
+  const date = (text.match(/日時[:：]\s*(.+)/) || [])[1] || "未取得";
+  const menu = (text.match(/メニュー[:：]\s*(.+)/) || [])[1] || "未取得";
+  const contact = (text.match(/ご連絡先[:：]\s*(.+)/) || [])[1] || "未取得";
+
+  return `【新規仮予約】
+お名前：${name}
+日時：${date}
+メニュー：${menu}
+連絡先：${contact}
+
+スタッフ確認をお願いします`;
+}
+
 app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
   // LINEには即200返す（タイムアウト対策）
   res.sendStatus(200);
@@ -151,7 +171,39 @@ console.log("✅ Dify answer:", answer);
 if (answer.includes("仮予約")) {
   console.log("📩 仮予約検知 → 通知送信");
 
-  await notifyStaff(`【新規仮予約】\n${answer}`);
+  const staffMessage = formatReservationForStaff(answer);
+  await notifyStaff(staffMessage);
+}
+
+// ===============================
+// スタッフ通知
+// ===============================
+async function notifyStaff(text) {
+  const to = [
+    process.env.STAFF_USER_ID_1,
+    process.env.STAFF_USER_ID_2,
+  ].filter(Boolean);
+
+  console.log("notifyStaff to:", to);
+
+  if (to.length === 0) return;
+
+  await client.multicast(to, {
+    type: "text",
+    text,
+  });
+}
+
+
+// ===============================
+// スタッフ用フォーマット
+// ===============================
+function formatReservationForStaff(text) {
+  return `【新規予約通知】
+
+${text}
+
+▼対応お願いします`;
 }
 
 return client.replyMessage(event.replyToken, {
