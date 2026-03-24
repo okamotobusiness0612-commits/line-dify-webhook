@@ -147,6 +147,13 @@ const answer = await callDifyChat(lineUserId, text);
 
 console.log("✅ Dify answer:", answer);
 
+// 仮予約検知 → スタッフ通知
+if (answer.includes("仮予約")) {
+  console.log("📩 仮予約検知 → 通知送信");
+
+  await notifyStaff(`【新規仮予約】\n${answer}`);
+}
+
 return client.replyMessage(event.replyToken, {
   type: "text",
   text: answer || "すみません、うまく回答できませんでした。もう一度お願いします🙇‍♂️",
