@@ -93,27 +93,30 @@ async function notifyStaff(text) {
 // スタッフ用フォーマット
 // ===============================
 function formatReservationForStaff(text) {
-  const name =
-    (text.match(/(?:お)?名前[:：]\s*(.+)/) || [])[1] ||
-    (text.match(/ありがとうございます、?\s*([^\s、。]+)様/) || [])[1] ||
-    "未取得";
+  // 名前（2パターン対応）
+  let name = "未取得";
 
-  const date =
-    (text.match(/(?:ご)?日時[:：]\s*(.+)/) || [])[1] ||
-    "未取得";
+  const nameMatch1 = text.match(/お名前[:：]\s*(.+)/);
+  if (nameMatch1) {
+    name = nameMatch1[1];
+  } else {
+    const nameMatch2 = text.match(/ありがとうございます、?\s*([^\s、。]+)様/);
+    if (nameMatch2) {
+      name = nameMatch2[1];
+    }
+  }
 
-  const menu =
-    (text.match(/メニュー[:：]\s*(.+)/) || [])[1] ||
-    "未取得";
+  // 他はシンプルに
+  const dateMatch = text.match(/日時[:：]\s*(.+)/);
+  const menuMatch = text.match(/メニュー[:：]\s*(.+)/);
+  const contactMatch = text.match(/連絡先[:：]\s*(.+)/);
 
-  const contact =
-    (text.match(/(?:ご)?連絡先[:：]\s*(.+)/) || [])[1] ||
-    "未取得";
-
-  const displayName = name === "未取得" ? "未取得" : `${name}様`;
+  const date = dateMatch ? dateMatch[1] : "未取得";
+  const menu = menuMatch ? menuMatch[1] : "未取得";
+  const contact = contactMatch ? contactMatch[1] : "未取得";
 
   return `【新規仮予約】
-お名前：${displayName}
+お名前：${name}様
 日時：${date}
 メニュー：${menu}
 連絡先：${contact}
