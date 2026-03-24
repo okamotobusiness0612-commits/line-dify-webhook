@@ -92,8 +92,8 @@ async function notifyStaff(text) {
 // ===============================
 // スタッフ用フォーマット
 // ===============================
+
 function formatReservationForStaff(text) {
-  // 名前（2パターン対応）
   let name = "未取得";
 
   const nameMatch1 = text.match(/お名前[:：]\s*(.+)/);
@@ -106,14 +106,20 @@ function formatReservationForStaff(text) {
     }
   }
 
-  // 他はシンプルに
   const dateMatch = text.match(/日時[:：]\s*(.+)/);
   const menuMatch = text.match(/メニュー[:：]\s*(.+)/);
   const contactMatch = text.match(/連絡先[:：]\s*(.+)/);
 
+  const offMatch = text.match(/オフあり|オフなし/);
+
   const date = dateMatch ? dateMatch[1] : "未取得";
-  const menu = menuMatch ? menuMatch[1] : "未取得";
+  let menu = menuMatch ? menuMatch[1] : "未取得";
   const contact = contactMatch ? contactMatch[1] : "未取得";
+
+  // 👇ここが追加ポイント
+  if (offMatch) {
+    menu = `${menu}（${offMatch[0]}）`;
+  }
 
   return `【新規仮予約】
 お名前：${name}様
